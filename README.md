@@ -4,15 +4,15 @@ Go backend for the Fidely loyalty card platform.
 
 ## Tech Stack
 
-- **Go 1.23**
+- **Go 1.25+**
 - **Echo** — HTTP framework
 - **pgx** — PostgreSQL driver
 - **golang-migrate** — Database migrations
 
 ## Prerequisites
 
-- Go 1.23+
-- Docker Desktop (with WSL integration enabled)
+- Go 1.25+
+- PostgreSQL 14+ (local install) **or** Docker Desktop
 - golang-migrate CLI
 
 ### Install golang-migrate
@@ -23,27 +23,48 @@ go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@lat
 
 ## Getting Started
 
-### 1. Start PostgreSQL
+### 1. Configure environment
+
+Use `.env.example` values (or export variables directly):
+
+```bash
+export DATABASE_URL="postgres://fidely:fidely@localhost:5432/fidely?sslmode=disable"
+export SERVER_PORT=8080
+```
+
+### 2. Start PostgreSQL
+
+#### Option A: Local PostgreSQL
+
+Make sure a database named `fidely` exists and your `DATABASE_URL` credentials are valid.
+
+#### Option B: Docker
 
 ```bash
 docker compose up -d
 ```
 
-### 2. Run Migrations
+If using Docker from WSL, `host.docker.internal` may be required:
 
 ```bash
-~/go/bin/migrate -path migrations -database "postgres://fidely:fidely@host.docker.internal:5432/fidely?sslmode=disable" up
+export DATABASE_URL="postgres://fidely:fidely@host.docker.internal:5432/fidely?sslmode=disable"
 ```
 
-### 3. Start Server
+### 3. Run Migrations
 
 ```bash
-DATABASE_URL="postgres://fidely:fidely@host.docker.internal:5432/fidely?sslmode=disable" go run cmd/api/main.go
+migrate -path migrations -database "$DATABASE_URL" up
+```
+
+### 4. Start Server
+
+```bash
+go run cmd/api/main.go
 ```
 
 Server runs on `http://localhost:8080`
 
-### 4. Test Health Check
+### 5. Test Health Check
 
 ```bash
 curl http://localhost:8080/health
@@ -51,7 +72,7 @@ curl http://localhost:8080/health
 
 ## Database
 
-- **Host:** `host.docker.internal` (from WSL) or `localhost` (from Windows)
+- **Host:** `localhost` (default local setup)
 - **Port:** 5432
 - **User:** fidely
 - **Password:** fidely
@@ -61,16 +82,16 @@ curl http://localhost:8080/health
 
 ```bash
 # Apply all migrations
-~/go/bin/migrate -path migrations -database "postgres://fidely:fidely@host.docker.internal:5432/fidely?sslmode=disable" up
+migrate -path migrations -database "$DATABASE_URL" up
 
 # Rollback last migration
-~/go/bin/migrate -path migrations -database "postgres://fidely:fidely@host.docker.internal:5432/fidely?sslmode=disable" down 1
+migrate -path migrations -database "$DATABASE_URL" down 1
 
 # Rollback all migrations
-~/go/bin/migrate -path migrations -database "postgres://fidely:fidely@host.docker.internal:5432/fidely?sslmode=disable" down
+migrate -path migrations -database "$DATABASE_URL" down
 
 # Check current version
-~/go/bin/migrate -path migrations -database "postgres://fidely:fidely@host.docker.internal:5432/fidely?sslmode=disable" version
+migrate -path migrations -database "$DATABASE_URL" version
 ```
 
 ## Project Structure
@@ -83,9 +104,9 @@ fidely-backend/
 │   ├── config/                 # Environment config
 │   ├── db/                     # Database connection
 │   ├── model/                  # Data models
-│   ├── repository/             # Database queries (add as needed)
-│   ├── service/                # Business logic (add as needed)
-│   └── handler/                # HTTP handlers (add as needed)
+│   ├── repository/             # Database queries (scaffold)
+│   ├── service/                # Business logic (scaffold)
+│   └── handler/                # HTTP handlers (scaffold)
 ├── migrations/                 # SQL migrations
 ├── docker-compose.yml
 ├── go.mod
@@ -98,3 +119,8 @@ fidely-backend/
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | (required) |
 | `SERVER_PORT` | HTTP server port | 8080 |
+
+## Current Scope
+
+- Infrastructure bootstrap is ready: server startup, DB connection, migrations, and health endpoint.
+- Business endpoints and authentication are not implemented yet.
