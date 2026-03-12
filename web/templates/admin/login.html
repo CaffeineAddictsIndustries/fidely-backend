@@ -1,0 +1,94 @@
+{{define "content"}}
+<div class="min-h-screen bg-white text-black">
+    <div class="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-6 py-10">
+        <div class="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-black/10 bg-white shadow-2xl shadow-black/10 md:grid-cols-2">
+            <section class="relative hidden md:flex flex-col justify-between bg-black p-10 text-white">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.2em] text-white/70">Fidely</p>
+                    <h2 class="mt-6 text-4xl font-semibold leading-tight">Admin Control Panel</h2>
+                    <p class="mt-4 text-sm text-white/75">Manage stores, campaigns, and loyalty activity from one place.</p>
+                </div>
+                <div class="h-1 w-20 rounded" style="background-color: #5046e5;"></div>
+            </section>
+
+            <section class="p-8 sm:p-10">
+            
+            <div class="text-center">
+                <div class="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-black">
+                    <span class="text-lg font-bold" style="color: #5046e5;">F</span>
+                </div>
+                <h1 class="text-3xl font-semibold tracking-tight">Sign in</h1>
+                <p class="mt-2 text-sm text-black/60">Use your admin credentials to continue</p>
+            </div>
+
+            <form hx-post="/auth/login" hx-target="body" hx-swap="innerHTML" class="mt-8 space-y-5">
+                
+                <div>
+                    <label for="username" class="mb-2 block text-sm font-medium">
+                        Username
+                    </label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username"
+                        required
+                        placeholder="Enter your username"
+                        class="brand-focus w-full rounded-xl border border-black/20 bg-white px-4 py-3 text-black placeholder-black/35 transition"
+                    />
+                </div>
+
+                <div>
+                    <label for="password" class="mb-2 block text-sm font-medium">
+                        Password
+                    </label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password"
+                        required
+                        placeholder="Enter your password"
+                        class="brand-focus w-full rounded-xl border border-black/20 bg-white px-4 py-3 text-black placeholder-black/35 transition"
+                    />
+                </div>
+
+                {{if .Error}}
+                <div class="rounded-xl border border-black bg-black px-4 py-3 text-sm font-medium text-white">
+                    {{.Error}}
+                </div>
+                {{end}}
+
+                <div class="flex items-center">
+                    <input 
+                        type="checkbox" 
+                        id="remember" 
+                        name="remember"
+                        class="h-4 w-4 rounded border-black/30 bg-white"
+                        style="accent-color: #5046e5;"
+                    />
+                    <label for="remember" class="ml-3 text-sm text-black/80">
+                        Remember me
+                    </label>
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full rounded-xl px-4 py-3 font-semibold text-white transition hover:brightness-110 active:translate-y-px"
+                    style="background-color: #5046e5;"
+                    hx-indicator="#login-spinner"
+                >
+                    Sign In
+                </button>
+
+                <div id="login-spinner" class="htmx-indicator justify-center">
+                    <div class="h-5 w-5 animate-spin rounded-full border-2 border-black/30" style="border-top-color: #5046e5;"></div>
+                </div>
+            </form>
+
+            <div class="mt-8 text-center text-xs text-black/60">
+                <p>Fidely Admin</p>
+            </div>
+            </section>
+        </div>
+    </div>
+</div>
+{{end}}

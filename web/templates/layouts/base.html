@@ -1,0 +1,40 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{if .Title}}{{.Title}}{{else}}Fidely Admin{{end}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <style>
+        :root {
+            --brand: #5046e5;
+        }
+
+        body {
+            color: #000000;
+            background: #ffffff;
+        }
+
+        .brand-focus:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--brand);
+            border-color: var(--brand);
+        }
+
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator,
+        .htmx-request.htmx-indicator {
+            display: inline-flex;
+        }
+    </style>
+</head>
+<body>
+    {{template "content" .}}
+</body>
+</html>
+{{end}}
