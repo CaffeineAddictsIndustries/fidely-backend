@@ -4,9 +4,12 @@ import (
 	"context"
 	"log"
 
+	"fidely-backend/internal/auth"
 	"fidely-backend/internal/config"
 	"fidely-backend/internal/db"
 	"fidely-backend/internal/handler"
+	"fidely-backend/internal/repository"
+	"fidely-backend/internal/service"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -26,8 +29,17 @@ func main() {
 	}
 	defer pool.Close()
 
+	authRepository := repository.NewAdminAuthRepository(pool)
+	passwordManager := auth.NewDefaultPasswordManager()
+	sessionManager := auth.NewSessionManager(cfg.AuthTokenHashPepper)
+	authService, err := service.NewAdminAuthService(authRepository, passwordManager, sessionManager, cfg.AuthSessionTTL)
+	if err != nil {
+		log.Fatalf("Failed to initialize auth service: %v", err)
+	}
+	authMiddleware := handler.NewAuthMiddleware(cfg, authService)
+
 	// Initialize web handler with templates
-	webHandler, err := handler.NewWebHandler()
+	webHandler, err := handler.NewWebHandler(cfg, authService)
 	if err != nil {
 		log.Fatalf("Failed to load templates: %v", err)
 	}
@@ -51,6 +63,15 @@ func main() {
 	e.GET("/", webHandler.LoginPage)
 	e.GET("/login", webHandler.LoginPage)
 	e.POST("/auth/login", webHandler.HandleLogin)
+
+	authenticated := e.Group("/auth")
+	authenticated.Use(authMiddleware.RequireAuthenticatedAdmin())
+	authenticated.POST("/logout", webHandler.HandleLogout)
+	authenticated.GET("/me", webHandler.CurrentAdmin)
+
+	platformOnly := e.Group("/admin/platform")
+	platformOnly.Use(authMiddleware.RequireAuthenticatedAdmin(), authMiddleware.RequireAdminTypes(auth.AdminTypeFidelyAdmin))
+	platformOnly.GET("/status", webHandler.PlatformOnlyStatus)
 
 	// API Routes will be added here
 	// e.g., e.GET("/api/stores", storeHandler.List)

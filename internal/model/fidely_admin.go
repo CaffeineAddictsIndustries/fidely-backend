@@ -3,11 +3,11 @@ package model
 // FidelyAdmin represents the fidely_admin table.
 // Platform-level administrators (not store admins).
 type FidelyAdmin struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Username string `json:"username"`
-	Password string `json:"-"` // Never expose password in JSON
-	Role     int    `json:"role"`
+	ID           int    `json:"id"`
+	Name         string `json:"name"`
+	Username     string `json:"username"`
+	PasswordHash string `json:"-"` // Never expose password hashes in JSON
+	Role         int    `json:"role"`
 }
 
 // FidelyAdminCreate is used when creating a new Fidely admin.

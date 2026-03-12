@@ -51,9 +51,12 @@
                     />
                 </div>
 
-                {{if .Error}}
-                <div class="rounded-xl border border-black bg-black px-4 py-3 text-sm font-medium text-white">
-                    {{.Error}}
+                {{if .Message}}
+                <div class="rounded-xl border px-4 py-3 text-sm font-medium {{if .Success}}border-green-700 bg-green-50 text-green-900{{else}}border-red-700 bg-red-50 text-red-900{{end}}">
+                    <div>{{.Message}}</div>
+                    {{if .Reason}}
+                    <div class="mt-1 text-xs {{if .Success}}text-green-800{{else}}text-red-800{{end}}">{{.Reason}}</div>
+                    {{end}}
                 </div>
                 {{end}}
 

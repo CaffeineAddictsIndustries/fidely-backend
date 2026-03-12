@@ -15,6 +15,12 @@ Go backend for the Fidely loyalty card platform.
 - PostgreSQL 14+ (local install) **or** Docker Desktop
 - golang-migrate CLI
 
+### Install Go dependencies
+
+```bash
+go mod download
+```
+
 ### Install golang-migrate
 
 ```bash
@@ -23,20 +29,28 @@ go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@lat
 
 ## Getting Started
 
-### 1. Configure environment
-
-Use `.env.example` values (or export variables directly):
-
-```bash
-export DATABASE_URL="postgres://fidely:fidely@localhost:5432/fidely?sslmode=disable"
-export SERVER_PORT=8080
-```
-
-### 2. Start PostgreSQL
+### 1. Set up the database
 
 #### Option A: Local PostgreSQL
 
-Make sure a database named `fidely` exists and your `DATABASE_URL` credentials are valid.
+Create the application role and database:
+
+```bash
+sudo -u postgres psql -d postgres -c "CREATE ROLE fidely LOGIN PASSWORD 'fidely';"
+sudo -u postgres createdb -O fidely fidely
+```
+
+If they already exist, you can just reset the password:
+
+```bash
+sudo -u postgres psql -d postgres -c "ALTER ROLE fidely WITH LOGIN PASSWORD 'fidely';"
+```
+
+Verify connectivity:
+
+```bash
+psql "postgres://fidely:fidely@localhost:5432/fidely?sslmode=disable" -c "SELECT current_user, current_database();"
+```
 
 #### Option B: Docker
 
@@ -44,19 +58,32 @@ Make sure a database named `fidely` exists and your `DATABASE_URL` credentials a
 docker compose up -d
 ```
 
-If using Docker from WSL, `host.docker.internal` may be required:
+If using Docker from WSL, `host.docker.internal` may be required for `DATABASE_URL`.
+
+### 2. Configure environment
+
+The app reads environment variables from the shell; it does not load `.env` automatically.
+
+For local PostgreSQL:
+
+```bash
+export DATABASE_URL="postgres://fidely:fidely@localhost:5432/fidely?sslmode=disable"
+export SERVER_PORT=8080
+```
+
+For Docker from WSL:
 
 ```bash
 export DATABASE_URL="postgres://fidely:fidely@host.docker.internal:5432/fidely?sslmode=disable"
 ```
 
-### 3. Run Migrations
+### 3. Run migrations
 
 ```bash
 migrate -path migrations -database "$DATABASE_URL" up
 ```
 
-### 4. Start Server
+### 4. Start the project
 
 ```bash
 go run cmd/api/main.go
@@ -64,10 +91,16 @@ go run cmd/api/main.go
 
 Server runs on `http://localhost:8080`
 
-### 5. Test Health Check
+### 5. Test the server
 
 ```bash
 curl http://localhost:8080/health
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
 ```
 
 ## Database
@@ -92,6 +125,16 @@ migrate -path migrations -database "$DATABASE_URL" down
 
 # Check current version
 migrate -path migrations -database "$DATABASE_URL" version
+```
+
+## Project Setup Summary
+
+```bash
+go mod download
+export DATABASE_URL="postgres://fidely:fidely@localhost:5432/fidely?sslmode=disable"
+export SERVER_PORT=8080
+migrate -path migrations -database "$DATABASE_URL" up
+go run cmd/api/main.go
 ```
 
 ## Project Structure
