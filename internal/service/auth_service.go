@@ -17,12 +17,15 @@ const (
 	MessageLogoutFailed     = "logout failed"
 	MessageAccessDenied     = "access denied"
 
-	ReasonUsernameDoesNotExist   = "username does not exist"
-	ReasonIncorrectPassword      = "incorrect password"
+	ReasonInvalidCredentials     = "invalid credentials"
 	ReasonMissingCredentials     = "username and password are required"
 	ReasonInvalidSession         = "invalid session"
 	ReasonInsufficientPrivileges = "insufficient privileges"
 )
+
+// dummyPasswordHash is used to normalize login timing when username doesn't exist.
+// Hash corresponds to a random throwaway value with bcrypt cost 12.
+const dummyPasswordHash = "$2a$12$Qf7kBfko5i7vAlNfL9Zwme6x6A0jvEeeQ6J0Pmv6Qp0WQ3f4o0XfS"
 
 var (
 	ErrAuthRepositoryRequired  = errors.New("auth repository is required")
@@ -119,10 +122,12 @@ func (service *AdminAuthService) Login(ctx context.Context, username string, pas
 		return LoginResult{}, fmt.Errorf("find admin by username: %w", err)
 	}
 	if principal == nil {
+		// Keep timing closer to valid-username path to reduce enumeration signals.
+		_ = service.passwords.Verify(dummyPasswordHash, password)
 		return LoginResult{
 			Success: false,
 			Message: MessageLoginFailed,
-			Reason:  ReasonUsernameDoesNotExist,
+			Reason:  ReasonInvalidCredentials,
 		}, nil
 	}
 
@@ -131,7 +136,7 @@ func (service *AdminAuthService) Login(ctx context.Context, username string, pas
 			return LoginResult{
 				Success: false,
 				Message: MessageLoginFailed,
-				Reason:  ReasonIncorrectPassword,
+				Reason:  ReasonInvalidCredentials,
 			}, nil
 		}
 		return LoginResult{}, fmt.Errorf("verify password: %w", err)

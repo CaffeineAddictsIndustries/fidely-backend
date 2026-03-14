@@ -120,7 +120,7 @@ func TestAdminAuthServiceLoginUsernameNotFound(t *testing.T) {
 	if result.Message != MessageLoginFailed {
 		t.Fatalf("unexpected failed message: %s", result.Message)
 	}
-	if result.Reason != ReasonUsernameDoesNotExist {
+	if result.Reason != ReasonInvalidCredentials {
 		t.Fatalf("unexpected reason: %s", result.Reason)
 	}
 }
@@ -157,7 +157,7 @@ func TestAdminAuthServiceLoginIncorrectPassword(t *testing.T) {
 	if result.Success {
 		t.Fatalf("expected failed result, got: %+v", result)
 	}
-	if result.Reason != ReasonIncorrectPassword {
+	if result.Reason != ReasonInvalidCredentials {
 		t.Fatalf("unexpected reason: %s", result.Reason)
 	}
 }

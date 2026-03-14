@@ -9,6 +9,7 @@ import (
 	"fidely-backend/internal/service"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 // WebHandler serves HTML pages for the admin interface.
@@ -65,7 +66,7 @@ func (h *WebHandler) HandleLogin(c echo.Context) error {
 		return h.render(c, status, map[string]any{
 			"Title":   "Fidely Admin Login",
 			"Message": result.Message,
-			"Reason":  result.Reason,
+			"Reason":  service.ReasonInvalidCredentials,
 			"Success": false,
 		})
 	}
@@ -159,6 +160,10 @@ func (h *WebHandler) PlatformOnlyStatus(c echo.Context) error {
 }
 
 func (h *WebHandler) render(c echo.Context, code int, data map[string]any) error {
+	if token, ok := c.Get(middleware.DefaultCSRFConfig.ContextKey).(string); ok && token != "" {
+		data["CSRFToken"] = token
+	}
+
 	c.Response().WriteHeader(code)
 	if c.Request().Header.Get("HX-Request") == "true" {
 		return h.templates.ExecuteTemplate(c.Response().Writer, "content", data)

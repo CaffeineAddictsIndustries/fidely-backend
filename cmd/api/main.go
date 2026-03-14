@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
+	"time"
 
 	"fidely-backend/internal/auth"
 	"fidely-backend/internal/config"
@@ -37,6 +39,15 @@ func main() {
 		log.Fatalf("Failed to initialize auth service: %v", err)
 	}
 	authMiddleware := handler.NewAuthMiddleware(cfg, authService)
+	loginRateLimiter, err := handler.NewRedisLoginRateLimiter(cfg.RedisURL, cfg.LoginRateLimitMax, cfg.LoginRateLimitWindow)
+	if err != nil {
+		log.Fatalf("Failed to initialize login rate limiter: %v", err)
+	}
+	defer func() {
+		if closeErr := loginRateLimiter.Close(); closeErr != nil {
+			log.Printf("Failed to close login rate limiter: %v", closeErr)
+		}
+	}()
 
 	// Initialize web handler with templates
 	webHandler, err := handler.NewWebHandler(cfg, authService)
@@ -50,19 +61,53 @@ func main() {
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
+		TokenLookup:    "form:_csrf",
+		CookieHTTPOnly: true,
+		CookieSecure:   cfg.AuthCookieSecure,
+		CookieSameSite: toEchoSameSiteMode(cfg.AuthCookieSameSite),
+		CookiePath:     "/",
+	}))
 
 	// Static files (CSS, JS, images)
 	e.Static("/static", "web/static")
 
 	// Health check endpoint
 	e.GET("/health", func(c echo.Context) error {
-		return c.JSON(200, map[string]string{"status": "ok"})
+		ctx, cancel := context.WithTimeout(c.Request().Context(), 2*time.Second)
+		defer cancel()
+
+		postgresErr := pool.Ping(ctx)
+		redisErr := loginRateLimiter.Ping(ctx)
+
+		dependencies := map[string]string{
+			"postgres": "ok",
+			"redis":    "ok",
+		}
+		if postgresErr != nil {
+			dependencies["postgres"] = "down"
+		}
+		if redisErr != nil {
+			dependencies["redis"] = "down"
+		}
+
+		status := "ok"
+		httpStatus := http.StatusOK
+		if postgresErr != nil || redisErr != nil {
+			status = "degraded"
+			httpStatus = http.StatusServiceUnavailable
+		}
+
+		return c.JSON(httpStatus, map[string]any{
+			"status":       status,
+			"dependencies": dependencies,
+		})
 	})
 
 	// Web Routes (Admin Interface)
 	e.GET("/", webHandler.LoginPage)
 	e.GET("/login", webHandler.LoginPage)
-	e.POST("/auth/login", webHandler.HandleLogin)
+	e.POST("/auth/login", webHandler.HandleLogin, loginRateLimiter.Middleware())
 
 	authenticated := e.Group("/auth")
 	authenticated.Use(authMiddleware.RequireAuthenticatedAdmin())
@@ -80,5 +125,16 @@ func main() {
 	log.Printf("Starting server on port %s", cfg.ServerPort)
 	if err := e.Start(":" + cfg.ServerPort); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
+	}
+}
+
+func toEchoSameSiteMode(value string) http.SameSite {
+	switch value {
+	case "strict":
+		return http.SameSiteStrictMode
+	case "none":
+		return http.SameSiteNoneMode
+	default:
+		return http.SameSiteLaxMode
 	}
 }

@@ -14,8 +14,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var ErrDuplicateAdminUsername = errors.New("duplicate admin username across admin tables")
-
 // AdminAuthRepository persists admin auth state in PostgreSQL.
 type AdminAuthRepository struct {
 	pool *pgxpool.Pool
@@ -26,27 +24,7 @@ func NewAdminAuthRepository(pool *pgxpool.Pool) *AdminAuthRepository {
 }
 
 func (repo *AdminAuthRepository) FindByUsername(ctx context.Context, username string) (*service.AdminPrincipal, error) {
-	storeAdmin, err := repo.findStoreAdminByUsername(ctx, username)
-	if err != nil {
-		return nil, err
-	}
-
-	fidelyAdmin, err := repo.findFidelyAdminByUsername(ctx, username)
-	if err != nil {
-		return nil, err
-	}
-
-	if storeAdmin != nil && fidelyAdmin != nil {
-		return nil, ErrDuplicateAdminUsername
-	}
-	if storeAdmin != nil {
-		return storeAdmin, nil
-	}
-	if fidelyAdmin != nil {
-		return fidelyAdmin, nil
-	}
-
-	return nil, nil
+	return repo.findStoreAdminByUsername(ctx, username)
 }
 
 func (repo *AdminAuthRepository) FindByTypeAndID(ctx context.Context, adminType auth.AdminType, adminID int) (*service.AdminPrincipal, error) {
